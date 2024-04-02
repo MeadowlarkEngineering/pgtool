@@ -6,7 +6,7 @@ import psycopg2
 
 class DatabaseBootstrapper:
 
-    def __init__(self, dbname, environment):
+    def __init__(self, dbname, environment, adminpw, ropw, rwpw):
         """
         Initialize the bootstrapper with the database name and environment
         @param {string} dbname the name of the database
@@ -22,6 +22,9 @@ class DatabaseBootstrapper:
         self.admin_role = self.dbname + "_admin"
         self.ro_role = self.dbname + "_readonly"
         self.rw_role = self.dbname + "_readwrite"
+        self.adminpw = adminpw
+        self.ropw = ropw
+        self.rwpw = rwpw
             
 
     def get_connection(self, transactional=True):
@@ -119,7 +122,7 @@ ORDER BY 1""")
                 cur.execute(f"SELECT FROM pg_database WHERE datname = '{self.dbname}'")
                 return len(cur.fetchall()) > 0
 
-    def create_users(self, adminpw, ropw, rwpw):
+    def create_users(self):
 
         current_roles = self.get_roles()
 
@@ -136,7 +139,7 @@ ORDER BY 1""")
             # Create readonly role
             if self.ro_role not in current_roles:
                 print(f"Creating role {self.ro_role}")
-                cur.execute(f"CREATE USER {self.ro_role} WITH PASSWORD '{ropw}'")
+                cur.execute(f"CREATE USER {self.ro_role} WITH PASSWORD '{self.ropw}'")
                 cur.execute(f"GRANT CONNECT ON DATABASE {self.dbname} TO {self.ro_role}")
                 cur.execute(f"GRANT USAGE ON SCHEMA {self.schema} TO {self.ro_role}")
                 cur.execute(f"GRANT SELECT ON ALL TABLES IN SCHEMA {self.schema} TO {self.ro_role}")
@@ -146,7 +149,7 @@ ORDER BY 1""")
             # Create readwrite role
             if self.rw_role not in current_roles:
                 print(f"Creating role {self.rw_role}")
-                cur.execute(f"CREATE USER {self.rw_role} WITH PASSWORD '{rwpw}'")
+                cur.execute(f"CREATE USER {self.rw_role} WITH PASSWORD '{self.rwpw}'")
                 cur.execute(f"GRANT CONNECT ON DATABASE {self.dbname} TO {self.rw_role};")
                 cur.execute(f"GRANT USAGE ON SCHEMA {self.schema} TO {self.rw_role}")
                 cur.execute(f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {self.schema} TO {self.rw_role}")
@@ -157,7 +160,7 @@ ORDER BY 1""")
             # Create admin role
             if self.admin_role not in current_roles:
                 print(f"Creating role {self.admin_role}")
-                cur.execute(f"CREATE USER {self.admin_role} WITH PASSWORD '{adminpw}'")
+                cur.execute(f"CREATE USER {self.admin_role} WITH PASSWORD '{self.adminpw}'")
                 cur.execute(f"GRANT CONNECT ON DATABASE {self.dbname} to {self.admin_role}")
                 cur.execute(f"GRANT USAGE, CREATE ON SCHEMA {self.schema} TO {self.admin_role}")
                 cur.execute(f"GRANT ALL ON DATABASE {self.dbname} to {self.admin_role}")
@@ -195,7 +198,7 @@ ORDER BY 1""")
         
         conn.close()
         
-    def write_env(self, adminpw):
+    def write_env(self):
         """
         Write the environment file for the database
         """
@@ -206,8 +209,11 @@ ORDER BY 1""")
         conn.close()
 
         with open(filename, 'w') as file:
-            file.write(f"DB_URL=postgresql://{self.admin_role}:{adminpw}@{dbhost}/{self.dbname}\n")
+            file.write(f'DB_URL=postgresql://{self.admin_role}:"{self.adminpw}"@{dbhost}/{self.dbname}\n')
+            file.write(f'# DB_URL=postgresql://{self.ro_role}:"{self.ropw}"@{dbhost}/{self.dbname}\n')
+            file.write(f'# DB_URL=postgresql://{self.rw_role}:"{self.rwpw}"@{dbhost}/{self.dbname}\n')
     
+        print(f"Environment written to {filename}")
 
 def main():
     parser = argparse.ArgumentParser(description="Bootstrap the EFN database")
@@ -220,15 +226,19 @@ def main():
     
     args = parser.parse_args()
     
-    bootstrapper = DatabaseBootstrapper(args.database, args.environment)
+    bootstrapper = DatabaseBootstrapper(args.database, 
+                                        args.environment,
+                                        args.admin_password, 
+                                        args.ro_password, 
+                                        args.rw_password)
     # Create the Database
     bootstrapper.create_database()
     
     # Configure users roles
-    bootstrapper.create_users(args.admin_password, args.ro_password, args.rw_password)
+    bootstrapper.create_users()
     
     # Write the environment file
-    bootstrapper.write_env(args.admin_password)
+    bootstrapper.write_env()
 
 if __name__ == "__main__":
     main()

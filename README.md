@@ -1,7 +1,8 @@
 # PG Tool
 
 Author: jshapiro@meadowlarkengineering.com
-Copyright 2024 Meadowlark Engineering LLC
+
+Copyright (c) 2024 Meadowlark Engineering LLC
 
 This repository contains the tools to quickly create and migrates databases. 
 
