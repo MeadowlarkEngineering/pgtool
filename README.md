@@ -22,7 +22,10 @@ DB_URL=postgres://<admin_user>:<admin_password>@<db_host>/<database>
 
 **Create a Database**
 ```
-poetry run create-database --admin-password <admin password> --ro-password <readonly password> --rw-password <readwrite password> mydb
+poetry run create-database --admin-password <admin password> \
+    --ro-password <readonly password> \
+    --rw-password <readwrite password> \
+    <database> <environment>
 ```
 
 **Run Migrations**
@@ -32,7 +35,7 @@ poetry run migrate-database --environment <environment> <database>
 
 **Rollback a Migration**
 ```
-poetry run migrate-database --environment <environment> --rollback <database>
+poetry run migrate-database --environment <environment> --rollback <N> <database>
 ```
 
 **Create a Migratino**
