@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "pgtool"
+version = "0.1.0"
+description = "1859 Databases"
+authors = ["Joshua Shapiro <joshua.shapiro@eighteenfiftynine.com>"]
+readme = "README.md"
+packages = [{include = "pgtool"}]
+license = "MIT"
+
+[tool.poetry.scripts]
+create-database='pgtool.database_bootstrapper:main'
+migrate-database='pgtool.migrator:main'
+create-migration='pgtool.new_migration:main'
+
+[tool.poetry.dependencies]
+python = "^3.9"
+yoyo-migrations = "^8.2.0"
+python-dotenv = "^0.21.1"
+requests = "^2.30.0"
+psycopg2-binary = "^2.9.9"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
