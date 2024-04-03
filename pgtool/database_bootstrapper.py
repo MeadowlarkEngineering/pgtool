@@ -208,10 +208,14 @@ ORDER BY 1""")
         dbhost = conn.get_dsn_parameters()["host"]
         conn.close()
 
+        def sanitize(s):
+            # Replace special characters with url codes
+            return s.replace('@', '%40').replace(':', '%3A')
+        
         with open(filename, 'w') as file:
-            file.write(f'DB_URL=postgresql://{self.admin_role}:"{self.adminpw}"@{dbhost}/{self.dbname}\n')
-            file.write(f'# DB_URL=postgresql://{self.ro_role}:"{self.ropw}"@{dbhost}/{self.dbname}\n')
-            file.write(f'# DB_URL=postgresql://{self.rw_role}:"{self.rwpw}"@{dbhost}/{self.dbname}\n')
+            file.write(f'DB_URL=postgresql://{self.admin_role}:"{sanitize(self.adminpw)}"@{dbhost}/{self.dbname}\n')
+            file.write(f'# DB_URL=postgresql://{self.ro_role}:"{sanitize(self.ropw)}"@{dbhost}/{self.dbname}\n')
+            file.write(f'# DB_URL=postgresql://{self.rw_role}:"{sanitize(self.rwpw)}"@{dbhost}/{self.dbname}\n')
     
         print(f"Environment written to {filename}")
 
