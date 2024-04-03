@@ -213,9 +213,9 @@ ORDER BY 1""")
             return s.replace('@', '%40').replace(':', '%3A')
         
         with open(filename, 'w') as file:
-            file.write(f'DB_URL=postgresql://{self.admin_role}:"{sanitize(self.adminpw)}"@{dbhost}/{self.dbname}\n')
-            file.write(f'# DB_URL=postgresql://{self.ro_role}:"{sanitize(self.ropw)}"@{dbhost}/{self.dbname}\n')
-            file.write(f'# DB_URL=postgresql://{self.rw_role}:"{sanitize(self.rwpw)}"@{dbhost}/{self.dbname}\n')
+            file.write(f'DB_URL=postgresql://{self.admin_role}:{sanitize(self.adminpw)}@{dbhost}/{self.dbname}\n')
+            file.write(f'# DB_URL=postgresql://{self.ro_role}:{sanitize(self.ropw)}@{dbhost}/{self.dbname}\n')
+            file.write(f'# DB_URL=postgresql://{self.rw_role}:{sanitize(self.rwpw)}@{dbhost}/{self.dbname}\n')
     
         print(f"Environment written to {filename}")
 
