@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "pgtool"
 version = "0.1.0"
-description = "1859 Databases"
-authors = ["Joshua Shapiro <joshua.shapiro@eighteenfiftynine.com>"]
+description = "Postgres Database Bootstrapping and Migration Tools"
+authors = ["Joshua Shapiro <meadowlarkengineering@gmail.com>"]
 readme = "README.md"
 packages = [{include = "pgtool"}]
 license = "MIT"
