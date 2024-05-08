@@ -1,6 +1,6 @@
 # PG Tool
 
-Author: jshapiro@meadowlarkengineering.com
+Author: Joshua Shapiro meadowlarkengineering@gmail.com
 
 Copyright (c) 2024 Meadowlark Engineering LLC
 
@@ -38,7 +38,7 @@ poetry run migrate-database --environment <environment> <database>
 poetry run migrate-database --environment <environment> --rollback <N> <database>
 ```
 
-**Create a Migratino**
+**Create a Migration**
 ```
 poetry run create-migration --database <database> "Add Table movies"
 ```
