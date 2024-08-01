@@ -6,7 +6,7 @@ import psycopg2
 
 class DatabaseBootstrapper:
 
-    def __init__(self, dbname, environment, adminpw, ropw, rwpw):
+    def __init__(self, dbname, environment, adminpw, ropw = None, rwpw = None):
         """
         Initialize the bootstrapper with the database name and environment
         @param {string} dbname the name of the database
@@ -137,25 +137,31 @@ ORDER BY 1""")
             cur.execute(f"CREATE SCHEMA IF NOT EXISTS {self.schema} ")
 
             # Create readonly role
-            if self.ro_role not in current_roles:
-                print(f"Creating role {self.ro_role}")
-                cur.execute(f"CREATE USER {self.ro_role} WITH PASSWORD '{self.ropw}'")
-                cur.execute(f"GRANT CONNECT ON DATABASE {self.dbname} TO {self.ro_role}")
-                cur.execute(f"GRANT USAGE ON SCHEMA {self.schema} TO {self.ro_role}")
-                cur.execute(f"GRANT SELECT ON ALL TABLES IN SCHEMA {self.schema} TO {self.ro_role}")
+            if self.ropw is None:
+                print("Readonly password not provided. Skipping readonly user creation")
             else:
-                print(f"Role {self.ro_role} already exists")
+                if self.ro_role not in current_roles:
+                    print(f"Creating role {self.ro_role}")
+                    cur.execute(f"CREATE USER {self.ro_role} WITH PASSWORD '{self.ropw}'")
+                    cur.execute(f"GRANT CONNECT ON DATABASE {self.dbname} TO {self.ro_role}")
+                    cur.execute(f"GRANT USAGE ON SCHEMA {self.schema} TO {self.ro_role}")
+                    cur.execute(f"GRANT SELECT ON ALL TABLES IN SCHEMA {self.schema} TO {self.ro_role}")
+                else:
+                    print(f"Role {self.ro_role} already exists")
 
             # Create readwrite role
-            if self.rw_role not in current_roles:
-                print(f"Creating role {self.rw_role}")
-                cur.execute(f"CREATE USER {self.rw_role} WITH PASSWORD '{self.rwpw}'")
-                cur.execute(f"GRANT CONNECT ON DATABASE {self.dbname} TO {self.rw_role};")
-                cur.execute(f"GRANT USAGE ON SCHEMA {self.schema} TO {self.rw_role}")
-                cur.execute(f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {self.schema} TO {self.rw_role}")
-                cur.execute(f"GRANT USAGE ON ALL SEQUENCES IN SCHEMA {self.schema} TO {self.rw_role}")
+            if self.rwpw is None:
+                print("Readwrite password not provided. Skipping readwrite user creation")
             else:
-                print(f"Role {self.rw_role} already exists")
+                if self.rw_role not in current_roles:
+                    print(f"Creating role {self.rw_role}")
+                    cur.execute(f"CREATE USER {self.rw_role} WITH PASSWORD '{self.rwpw}'")
+                    cur.execute(f"GRANT CONNECT ON DATABASE {self.dbname} TO {self.rw_role};")
+                    cur.execute(f"GRANT USAGE ON SCHEMA {self.schema} TO {self.rw_role}")
+                    cur.execute(f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {self.schema} TO {self.rw_role}")
+                    cur.execute(f"GRANT USAGE ON ALL SEQUENCES IN SCHEMA {self.schema} TO {self.rw_role}")
+                else:
+                    print(f"Role {self.rw_role} already exists")
 
             # Create admin role
             if self.admin_role not in current_roles:
@@ -170,10 +176,12 @@ ORDER BY 1""")
                 user = conn.get_dsn_parameters()["user"]
                 cur.execute(f"GRANT {self.admin_role} TO {user}")
 
-                cur.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE {self.admin_role} GRANT USAGE ON SEQUENCES TO {self.rw_role}")
-                cur.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE {self.admin_role} GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {self.rw_role}")
-                cur.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE {self.admin_role} GRANT SELECT ON TABLES TO {self.ro_role}")
-                cur.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE {self.admin_role} GRANT SELECT ON SEQUENCES TO {self.ro_role}")
+                if self.rwpw is not None:
+                    cur.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE {self.admin_role} GRANT USAGE ON SEQUENCES TO {self.rw_role}")
+                    cur.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE {self.admin_role} GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {self.rw_role}")
+                if self.ropw is not None:
+                    cur.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE {self.admin_role} GRANT SELECT ON TABLES TO {self.ro_role}")
+                    cur.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE {self.admin_role} GRANT SELECT ON SEQUENCES TO {self.ro_role}")
             else:
                 print(f"Role {self.admin_role} already exists")
         conn.commit()
@@ -205,7 +213,7 @@ ORDER BY 1""")
         filename = f".env.{self.dbname_no_env}.{self.environment}"
 
         conn = self.get_connection()
-        dbhost = conn.get_dsn_parameters()["host"]
+        dbhost = conn.get_dsn_parameters().get("host", "localhost")
         conn.close()
 
         def sanitize(s):
@@ -214,8 +222,10 @@ ORDER BY 1""")
         
         with open(filename, 'w') as file:
             file.write(f'DB_URL=postgresql://{self.admin_role}:{sanitize(self.adminpw)}@{dbhost}/{self.dbname}\n')
-            file.write(f'# DB_URL=postgresql://{self.ro_role}:{sanitize(self.ropw)}@{dbhost}/{self.dbname}\n')
-            file.write(f'# DB_URL=postgresql://{self.rw_role}:{sanitize(self.rwpw)}@{dbhost}/{self.dbname}\n')
+            if self.ropw is not None:
+                file.write(f'# DB_URL=postgresql://{self.ro_role}:{sanitize(self.ropw)}@{dbhost}/{self.dbname}\n')
+            if self.rwpw is not None:
+                file.write(f'# DB_URL=postgresql://{self.rw_role}:{sanitize(self.rwpw)}@{dbhost}/{self.dbname}\n')
     
         print(f"Environment written to {filename}")
 
@@ -225,8 +235,8 @@ def main():
     parser.add_argument('database', action="store", help="Database name")
     parser.add_argument('environment', action="store", choices=['prod', 'test', 'dev'], help="Environment name")
     parser.add_argument('--admin-password', action="store", required=True, help="admin user password")
-    parser.add_argument('--ro-password', action="store", required=True, help="readonly user password")
-    parser.add_argument('--rw-password', action="store", required=True, help="readwrite user password")
+    parser.add_argument('--ro-password', action="store", required=False, help="readonly user password")
+    parser.add_argument('--rw-password', action="store", required=False, help="readwrite user password")
     
     args = parser.parse_args()
     
@@ -235,14 +245,20 @@ def main():
                                         args.admin_password, 
                                         args.ro_password, 
                                         args.rw_password)
-    # Create the Database
-    bootstrapper.create_database()
-    
-    # Configure users roles
-    bootstrapper.create_users()
-    
-    # Write the environment file
-    bootstrapper.write_env()
+    try:
+        # Create the Database
+        bootstrapper.create_database()
+        
+        # Configure users roles
+        bootstrapper.create_users()
+        
+        # Write the environment file
+        bootstrapper.write_env()
+    except psycopg2.OperationalError as e:
+        print(f"Database error: {e}")
+        print("Make sure that the database is running and that PGUSER, PGPASSWORD, PGDATABASE envionment variables are set")
+    except Exception as e:
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
     main()
