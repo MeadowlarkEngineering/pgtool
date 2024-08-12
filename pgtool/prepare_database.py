@@ -4,6 +4,7 @@ Requires an administrative user to create the databases
 Runs migrations for each database in the migrations directory
 """
 import sys
+import os
 from urllib.parse import urlparse
 from pathlib import Path
 from pgtool.utilities import db_exists, get_connection
@@ -15,7 +16,11 @@ def main():
     Create database and run migrations
     """
 
-    db_url = sys.argv[1]
+    if len(sys.argv) > 1:
+        db_url = sys.argv[1]
+    else:
+        db_url = os.environ.get('DB_URL', None)
+
     if db_url is None:
         print("DB_URL must be set")
         exit(1)
