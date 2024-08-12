@@ -16,7 +16,7 @@ class DatabaseBootstrapper:
         Otherwise, the database name is suffixed with the environment name
         """
         self.dbname_no_env = dbname
-        self.dbname = f"{dbname}_{environment}"
+        self.dbname = f"{dbname}_{environment}" if environment != '' else dbname
         self.environment = environment
         self.schema = f"public"
         self.admin_role = self.dbname + "_admin"

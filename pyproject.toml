@@ -11,6 +11,7 @@ license = "MIT"
 create-database='pgtool.database_bootstrapper:main'
 migrate-database='pgtool.migrator:main'
 create-migration='pgtool.new_migration:main'
+prepare-database='pgtool.prepare_database:main'
 
 [tool.poetry.dependencies]
 python = "^3.9"
