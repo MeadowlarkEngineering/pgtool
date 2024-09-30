@@ -5,6 +5,7 @@ Runs migrations for each database in the migrations directory
 """
 import sys
 import os
+import argparse
 from urllib.parse import urlparse
 from pathlib import Path
 from pgtool.utilities import db_exists, get_connection
@@ -16,13 +17,20 @@ def main():
     Create database and run migrations
     """
 
-    if len(sys.argv) > 1:
-        db_url = sys.argv[1]
+    parser = argparse.ArgumentParser(description="Prepare database and run migrations")
+    parser.add_argument("db_url", nargs='?', help="Database URL (If not provided will use DB_URL environment variable)")
+    parser.add_argument("--db-name-suffix", help="Adds a suffix to the database name separated by an underscore")
+    parser.add_argument("--migrations-path", help="Path to the migrations directory", default="migrations")
+
+    args = parser.parse_args()
+
+    if args.db_url:
+        db_url = args.db_url
     else:
         db_url = os.environ.get('DB_URL', None)
 
     if db_url is None:
-        print("DB_URL must be set")
+        print("DB_URL must be set or specified on command line")
         exit(1)
 
     url = urlparse(db_url)
@@ -31,12 +39,22 @@ def main():
     user = url.username
     password = url.password
 
-    admin_dsn = f"postgres://{user}:{password}@{server}/postgres"
+    prepare(user, password, server, args.db_name_suffix, args.migrations_path)
 
-    migration_path = Path('migrations')
+def prepare(user, password, host, db_name_suffix = None, migration_path = 'migrations'):
+    """
+    Prepare all databases in the migrations folder
+    """
+
+    admin_dsn = f"postgres://{user}:{password}@{host}/postgres"
+    migration_path = Path(migration_path)
 
     for database_path in migration_path.glob('*'):
+    
         db_name = database_path.name
+        if db_name_suffix is not None:
+            db_name = f"{db_name}_{db_name_suffix}"
+    
         print(f"Processing database {db_name}")
         # Create database if it does not exist
         if not db_exists(db_name, dsn=admin_dsn):
@@ -48,6 +66,8 @@ def main():
 
         print(f"Applying migrations in {database_path}")
         migrations = read_migrations(str(database_path))
+    
+        db_url = f"postgres://{user}:{password}@{host}/{db_name}"
         backend = get_backend(db_url)
 
         with backend.lock():
