@@ -6,7 +6,7 @@ Runs migrations for each database in the migrations directory
 import sys
 import os
 import argparse
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 from pathlib import Path
 from pgtool.utilities import db_exists, get_connection
 from yoyo import read_migrations, get_backend
@@ -47,7 +47,7 @@ def prepare(user, password, host, db_name_suffix = None, migration_path = 'migra
     Prepare all databases in the migrations folder
     """
 
-    admin_dsn = f"postgres://{user}:{password}@{host}/postgres"
+    admin_dsn = f"postgres://{user}:{quote(password)}@{host}/postgres"
     migration_path = Path(migration_path)
 
     for database_path in migration_path.glob('*'):
