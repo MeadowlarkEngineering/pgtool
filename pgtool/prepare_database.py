@@ -65,7 +65,7 @@ def prepare(user, password, host, db_name_suffix = None, migration_path = 'migra
                 cur.execute(f"CREATE DATABASE {db_name}")
             conn.close()
 
-        db_url = f"postgres://{user}:{password}@{host}/{db_name}"
+        db_url = f"postgres://{user}:{quote(password)}@{host}/{db_name}"
         backend = get_backend(db_url)
 
 
