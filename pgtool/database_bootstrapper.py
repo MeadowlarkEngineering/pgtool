@@ -24,7 +24,6 @@ class DatabaseBootstrapper:
         self.admin_role = self.dbname + "_admin"
         self.ro_role = self.dbname + "_readonly"
         self.rw_role = self.dbname + "_readwrite"
-        self.replication_role = self.dbname + "_replication"
         self.adminpw = adminpw
         self.ropw = ropw
         self.rwpw = rwpw
@@ -185,17 +184,6 @@ class DatabaseBootstrapper:
 
             else:
                 print(f"Role {self.admin_role} already exists")
-
-            # Create replication role
-            if self.replication_role not in current_roles:
-                print(f"Creating role {self.replication_role}")
-                cur.execute(f"CREATE ROLE {self.replication_role} REPLICATION LOGIN")
-                cur.execute(f"GRANT CONNECT ON DATABASE {self.dbname} TO {self.replication_role}")
-                cur.execute(f"GRANT USAGE ON SCHEMA {self.schema} TO {self.replication_role}")
-                cur.execute(f"GRANT SELECT ON ALL TABLES IN SCHEMA {self.schema} TO {self.replication_role}")
-                cur.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE {self.admin_role} GRANT SELECT ON TABLES TO {self.replication_role}")
-                cur.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE {self.admin_role} GRANT SELECT ON SEQUENCES TO {self.replication_role}")
-
 
             # Create readonly role
             if self.ro_role not in current_roles:
