@@ -8,10 +8,13 @@ packages = [{include = "pgtool"}]
 license = "MIT"
 
 [tool.poetry.scripts]
-create-database='pgtool.database_bootstrapper:main'
+create-database='pgtool.database_bootstrapper:create_database'
+add-user='pgtool.database_bootstrapper:add_user'
 migrate-database='pgtool.migrator:main'
 create-migration='pgtool.new_migration:main'
 prepare-database='pgtool.prepare_database:main'
+check-grants='pgtool.database_bootstrapper:check_grants'
+rename-database='pgtool.database_bootstrapper:rename_database'
 
 [tool.poetry.dependencies]
 python = "^3.9"
